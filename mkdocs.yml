@@ -1,5 +1,5 @@
 site_name: lobmp
-site_description: Limit Order Book Message Processor is a Python package designed to transform raw lseg(aka Refinitiv) high frequency trading data into convinient formats such as parquet.
+site_description: Limit Order Book Message Processor is a Python package designed to transform raw lseg(aka Refinitiv) high frequency trading data into convenient formats such as parquet.
 site_url: https://davidricodias.github.io/lobmp
 
 theme:
@@ -23,12 +23,25 @@ theme:
   features:
     - search.suggest
     - search.highlight
+    - content.code.copy
 repo_name: davidricodias/lobmp
 repo_url: https://github.com/davidricodias/lobmp
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
 
 nav:
   - Home: index.md
+  - Quickstart: quickstart.ipynb
 
 plugins:
   - mkdocstrings
   - search
+  - mkdocs-jupyter

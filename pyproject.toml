@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "lobmp"
-description = "Limit Order Book Message Processor is a Python package designed to transform raw lseg(aka Refinitiv) high frequency trading data into convinient formats such as parquet."
+description = "Limit Order Book Message Processor is a Python package designed to transform raw lseg(aka Refinitiv) high frequency trading data into convenient formats such as parquet."
 authors = [
   { name = "José David Rico Días" },
 ]
@@ -25,6 +25,7 @@ dev = [
   "mkdocs==1.6.1",
   "mkdocs-material==9.6.12",
   "mkdocstrings[python]==0.29.1",
+  "mkdocs-jupyter",
   "mypy[faster-cache]==1.15.0",
   "pre-commit==4.2.0",
   "pytest==8.3.5",
