@@ -24,7 +24,7 @@ theme:
     - search.suggest
     - search.highlight
 repo_name: davidricodias/lobmp
-repo_url: github.com/davidricodias/lobmp
+repo_url: https://github.com/davidricodias/lobmp
 
 nav:
   - Home: index.md
