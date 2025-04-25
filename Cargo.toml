@@ -1,0 +1,17 @@
+[package]
+name = "lobmp"
+version = "0.0.1"
+description = "Limit Order Book Message Processor is a Python package designed to transform raw lseg(aka Refinitiv) high frequency trading data into convinient formats such as parquet."
+edition = "2021"
+license = "MIT"
+readme = "README.md"
+
+[lib]
+name = "_lobmp"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "x", features = ["extension-module"] }
+crossbeam = "0.8.4"
+polars = {version = "0.46.0", features = ["lazy", "parquet"]}
+pyo3-polars = "0.20.0"
