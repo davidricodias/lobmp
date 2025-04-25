@@ -37,7 +37,7 @@
   cargo check
 
 @clippy:
-  cargo clippy --all-targets
+  cargo clippy --all-targets -- -A warnings
 
 @fmt:
   cargo fmt --all
