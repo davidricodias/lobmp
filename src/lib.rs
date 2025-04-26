@@ -4,8 +4,9 @@ use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
 use pyo3_polars::PyDataFrame;
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::fs::{self, File};
-use std::io::{BufRead, BufReader, BufWriter, Seek, SeekFrom};
+use std::io::{BufRead, BufReader, BufWriter, Read, Seek, SeekFrom};
 use std::path::PathBuf;
 use std::thread::{available_parallelism, sleep};
 use std::{thread, time};
@@ -290,13 +291,35 @@ fn run(path: PathBuf, output_path: PathBuf, py: Python) -> PyResult<bool> {
     })?;
     let mut reader: BufReader<File> = BufReader::new(file);
 
-    logger.call_method1("debug", ("Counting lines in file...",))?;
+    logger.call_method1(
+        "info",
+        ("Counting lines in file and recognising possible FIDs...",),
+    )?;
+    let mut possible_fids: HashSet<String> = HashSet::new();
     let mut line_count = 0;
-    let mut line = String::new();
-    while reader.read_line(&mut line)? > 0 {
+
+    for line in reader.by_ref().lines() {
+        let str_line = line.unwrap();
         line_count += 1;
-        line.clear();
+
+        let parts: Vec<&str> = str_line.split(',').collect();
+        if let Some(s) = parts.get(4) {
+            if *s == "FID" {
+                if let Some(fid_name) = parts.get(7) {
+                    possible_fids.insert(fid_name.to_string());
+                }
+            }
+        }
     }
+    possible_fids.extend([
+        "TICKER".to_string(),
+        "TIMESTAMP".to_string(),
+        "GMT_OFFSET".to_string(),
+        "MARKET_MESSAGE_TYPE".to_string(),
+        "MAP_ENTRY_TYPE".to_string(),
+        "MAP_ENTRY_KEY".to_string(),
+    ]);
+
     reader.seek(SeekFrom::Start(0))?;
 
     logger.call_method1("info", (format!("Found {} lines in file", line_count),))?;
@@ -350,48 +373,9 @@ fn run(path: PathBuf, output_path: PathBuf, py: Python) -> PyResult<bool> {
             let mut dataframes_map: HashMap<usize, LazyFrame> = HashMap::new();
             let mut batch_counter: usize = 0;
 
-            let expected_columns: Vec<&str> = vec![
-                "TICKER",
-                "TIMESTAMP",
-                "GMT_OFFSET",
-                "MARKET_MESSAGE_TYPE",
-                "PROD_PERM",
-                "DSPLY_NAME",
-                "CURRENCY",
-                "ACTIV_DATE",
-                "RECORDTYPE",
-                "RDN_EXCHD2",
-                "QUOTE_DATE",
-                "PROV_SYMB",
-                "PR_RNK_RUL",
-                "OR_RNK_RUL",
-                "MNEMONIC",
-                "QUOTIM_MS",
-                "MKT_STATUS",
-                "TIMACT_MS",
-                "CONTEXT_ID",
-                "DDS_DSO_ID",
-                "SPS_SP_RIC",
-                "BOOK_STATE",
-                "HALT_REASN",
-                "MKT_OR_RUL",
-                "TRD_STATUS",
-                "HALT_RSN",
-                "INST_PHASE",
-                "TIMACT_NS",
-                "MAP_ENTRY_TYPE",
-                "MAP_ENTRY_KEY",
-                "BID_TIME",
-                "ASK_TIME",
-                "ORDER_PRC",
-                "ORDER_SIDE",
-                "NO_ORD",
-                "ACC_SIZE",
-                "LV_TIM_MS",
-                "LV_DATE",
-                "LV_TIM_NS",
-                "ORDBK_VOL",
-            ];
+            let mut expected_columns: Vec<&str> =
+                possible_fids.iter().map(|s| s.as_str()).collect();
+            expected_columns.sort();
 
             // Ensure the output directory exists
             fs::create_dir_all(&output_path).expect("Failed to create output directory");

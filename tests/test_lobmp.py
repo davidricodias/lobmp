@@ -14,7 +14,7 @@ import pytest
 from polars.testing import assert_frame_equal
 
 from lobmp import find_market_by_price_lines, flatten_map_entry, flatten_market_by_price, run
-from lobmp.definitions.fids import columns_order, known_fids
+from lobmp.definitions.fids import known_fids, supplement
 from lobmp.logger import activate_logger, set_logger_level
 
 activate_logger()
@@ -387,10 +387,10 @@ def test_run_ok(tmp_path: Path, num_messages: int, num_map_entries: int) -> None
         expected = pl.concat([expected, market_by_price_df.clone()])
 
     # Force column order in expected order. I.e. the final fill
-    for col in columns_order:
+    for col in supplement:
         if col not in expected.columns:
             expected = expected.with_columns(pl.lit("").alias(col))
-    expected = expected.select(columns_order)
+    expected = expected.select(sorted(expected.columns))
 
     file.write_text(test_messages)
 

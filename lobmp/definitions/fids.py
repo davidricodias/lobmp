@@ -77,3 +77,12 @@ columns_order = [
     "LV_TIM_NS",
     "ORDBK_VOL",
 ]
+
+supplement = [
+    "TICKER",
+    "TIMESTAMP",
+    "GMT_OFFSET",
+    "MARKET_MESSAGE_TYPE",
+    "MAP_ENTRY_TYPE",
+    "MAP_ENTRY_KEY",
+]
