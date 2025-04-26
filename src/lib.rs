@@ -11,28 +11,6 @@ use std::thread::{available_parallelism, sleep};
 use std::{thread, time};
 
 #[pyfunction]
-fn count_lines(path: PathBuf) -> PyResult<usize> {
-    if path.extension().and_then(|ext| ext.to_str()) != Some("csv") {
-        return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
-            "Only .csv files are supported",
-        ));
-    }
-
-    let file = File::open(&path).map_err(|e| {
-        PyErr::new::<pyo3::exceptions::PyIOError, _>(format!("Failed to open file: {}", e))
-    })?;
-
-    let reader = BufReader::new(file);
-
-    let mut count = 0;
-    for _line in reader.lines() {
-        count += 1;
-    }
-
-    Ok(count)
-}
-
-#[pyfunction]
 fn find_market_by_price_lines(path: PathBuf, py: Python) -> PyResult<PyObject> {
     if path.extension().and_then(|ext| ext.to_str()) != Some("csv") {
         return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
@@ -589,7 +567,6 @@ fn run(path: PathBuf, output_path: PathBuf, py: Python) -> PyResult<bool> {
 
 #[pymodule]
 fn _lobmp(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(count_lines, m)?)?;
     m.add_function(wrap_pyfunction!(find_market_by_price_lines, m)?)?;
     m.add_function(wrap_pyfunction!(extract_fids, m)?)?;
     m.add_function(wrap_pyfunction!(flatten_map_entry, m)?)?;
