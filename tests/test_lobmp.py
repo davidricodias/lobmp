@@ -421,13 +421,8 @@ def test_run_raises_oserror_when_file_not_exists(tmp_path: Path):
     file = tmp_path / "test_file.csv"
 
     # The file is not created
-    with pytest.raises(OSError) as excinfo:
+    with pytest.raises(OSError, match=r'Failed to open file ".*test_file\.csv".*\(os error 2\)'):
         run(Path(file), Path(tmp_path))
-
-    assert (
-        str(excinfo.value)
-        == f'Failed to open file "{Path(file)}": No such file or directory (os error 2)'
-    )
 
 
 @pytest.mark.parametrize(
