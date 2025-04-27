@@ -416,8 +416,7 @@ fn run(path: PathBuf, output_path: PathBuf, py: Python) -> PyResult<bool> {
                 }
 
                 if dfs.len() >= BATCH_SIZE {
-                    let file_path =
-                        output_path.join(format!("part-{:06}.parquet", batch_counter));
+                    let file_path = output_path.join(format!("part-{:06}.parquet", batch_counter));
                     let file = File::create(&file_path).expect("Failed to create batch file");
                     let writer = ParquetWriter::new(BufWriter::new(file));
                     let mut batch_df = concat(dfs.drain(..), UnionArgs::default())
