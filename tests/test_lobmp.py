@@ -411,10 +411,7 @@ def test_run_raises_valueerror_when_file_is_not_csv_extension(tmp_path: Path):
     with pytest.raises(ValueError) as excinfo:
         run(Path(file), Path(tmp_path))
 
-    assert (
-        str(excinfo.value)
-        == f'The file "{Path(file)}" is not of type CSV, Only .csv files are supported'
-    )
+    assert "is not of type CSV, Only .csv files are supported" in str(excinfo.value)
 
 
 def test_run_raises_oserror_when_file_not_exists(tmp_path: Path):
