@@ -32,20 +32,6 @@ def cli() -> int:
     parser.add_argument("filepath", help="Path to the input file.", type=str)
     parser.add_argument("targetdir", help="Directory for the processed data.", type=str)
     parser.add_argument(
-        "--target",
-        default="parquet",
-        choices=["parquet"],
-        help="Target format for the processing.",
-        type=str,
-    )
-    parser.add_argument(
-        "--provider",
-        default="lseg",
-        choices=["lseg"],
-        help="Provider of the data to be processed. Currently *only supports lseg*.",
-        type=str,
-    )
-    parser.add_argument(
         "--verbose",
         default="NOTSET",
         choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL", "NOTSET"],

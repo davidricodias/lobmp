@@ -16,8 +16,8 @@ def main(filepath: str, targetdir: str, verbose: int | str = "NOTSET") -> int:
         set_logger_level(verbose)
 
     input_file_path = Path(filepath)
-    output_file_path = (Path(targetdir) / input_file_path.stem).with_suffix(".parquet")
+    output_directory_path = (Path(targetdir) / input_file_path.stem).with_suffix(".parquet")
 
     with log.timeit("Execute run"):
-        status = run(input_file_path, output_file_path)
+        status = run(input_file_path, output_directory_path)
     return status
