@@ -15,12 +15,12 @@ use std::{thread, time};
 fn find_market_by_price_lines(path: PathBuf, py: Python) -> PyResult<PyObject> {
     if path.extension().and_then(|ext| ext.to_str()) != Some("csv") {
         return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
-            "Only .csv files are supported",
+            format!("The file {:?} is not of type CSV, Only .csv files are supported", path),
         ));
     }
 
     let file = File::open(&path).map_err(|e| {
-        PyErr::new::<pyo3::exceptions::PyIOError, _>(format!("Failed to open file: {}", e))
+        PyErr::new::<pyo3::exceptions::PyIOError, _>(format!("Failed to open file {:?}: {}", path, e))
     })?;
 
     let reader = BufReader::new(file);
@@ -45,12 +45,12 @@ fn find_market_by_price_lines(path: PathBuf, py: Python) -> PyResult<PyObject> {
 fn extract_fids(path: PathBuf, py: Python) -> PyResult<PyObject> {
     if path.extension().and_then(|ext| ext.to_str()) != Some("csv") {
         return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
-            "Only .csv files are supported",
+            format!("The file {:?} is not of type CSV, Only .csv files are supported", path),
         ));
     }
 
     let file = File::open(&path).map_err(|e| {
-        PyErr::new::<pyo3::exceptions::PyIOError, _>(format!("Failed to open file: {}", e))
+        PyErr::new::<pyo3::exceptions::PyIOError, _>(format!("Failed to open file {:?}: {}", path, e))
     })?;
 
     let reader = BufReader::new(file);
@@ -282,12 +282,12 @@ fn run(path: PathBuf, output_path: PathBuf, py: Python) -> PyResult<bool> {
 
     if path.extension().and_then(|ext| ext.to_str()) != Some("csv") {
         return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
-            "Only .csv files are supported",
+            format!("The file {:?} is not of type CSV, Only .csv files are supported", path),
         ));
     }
 
     let file: File = File::open(&path).map_err(|e| {
-        PyErr::new::<pyo3::exceptions::PyIOError, _>(format!("Failed to open file: {}", e))
+        PyErr::new::<pyo3::exceptions::PyIOError, _>(format!("Failed to open file {:?}: {}", path, e))
     })?;
     let mut reader: BufReader<File> = BufReader::new(file);
 

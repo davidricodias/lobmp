@@ -404,6 +404,32 @@ def test_run_ok(tmp_path: Path, num_messages: int, num_map_entries: int) -> None
         assert not all([file.suffix.endswith("parquet") for file in Path(tmp_path).iterdir()])
 
 
+def test_run_raises_valueerror_when_file_is_not_csv_extension(tmp_path: Path):
+    file = tmp_path / "test_file.txt"
+    file.touch()
+
+    with pytest.raises(ValueError) as excinfo:
+        run(Path(file), Path(tmp_path))
+
+    assert (
+        str(excinfo.value)
+        == f'The file "{Path(file)}" is not of type CSV, Only .csv files are supported'
+    )
+
+
+def test_run_raises_oserror_when_file_not_exists(tmp_path: Path):
+    file = tmp_path / "test_file.csv"
+
+    # The file is not created
+    with pytest.raises(OSError) as excinfo:
+        run(Path(file), Path(tmp_path))
+
+    assert (
+        str(excinfo.value)
+        == f'Failed to open file "{Path(file)}": No such file or directory (os error 2)'
+    )
+
+
 @pytest.mark.parametrize(
     "num_messages", [0, 1]
 )  # Number of Market By Price messages. IMPORTANT: flatten_market_by_price expects one Market By Price message
