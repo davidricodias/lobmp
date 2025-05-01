@@ -5,6 +5,7 @@ build-backend = "maturin"
 [project]
 name = "lobmp"
 description = "Limit Order Book Message Processor is a Python package designed to transform raw lseg(aka Refinitiv) high frequency trading data into convenient formats such as parquet."
+repository = "https://github.com/davidricodias/lobmp"
 authors = [
   { name = "José David Rico Días" },
 ]
@@ -12,8 +13,22 @@ license = { file = "LICENSE" }
 readme = "README.md"
 version = "0.1.5"
 requires-python = ">=3.11"
+
 dependencies = [
   "polars"
+]
+
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Financial and Insurance Industry",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Rust"
 ]
 
 [project.scripts]

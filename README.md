@@ -1,3 +1,8 @@
+[![PyPI version](https://badge.fury.io/py/lobmp.svg)](https://badge.fury.io/py/lobmp)
+[![PyPI Downloads](https://static.pepy.tech/badge/lobmp)](https://pepy.tech/projects/lobmp)
+[![Build Status](https://github.com/davidricodias/lobmp/actions/workflows/pypi_publish.yml/badge.svg)](https://github.com/davidricodias/lobmp/actions/workflows/pypi_publish.yml)
+[![Test Status](https://github.com/davidricodias/lobmp/actions/workflows/testing.yml/badge.svg)](https://github.com/davidricodias/lobmp/actions/workflows/testing.yml)
+
 # lobmp
 
 Limit Order Book Message Processor is a Python package designed to transform raw lseg(aka Refinitiv) high frequency trading data into convenient formats such as parquet.
