@@ -1,7 +1,9 @@
-[![PyPI version](https://badge.fury.io/py/lobmp.svg)](https://badge.fury.io/py/lobmp)
-[![PyPI Downloads](https://static.pepy.tech/badge/lobmp)](https://pepy.tech/projects/lobmp)
-[![Build Status](https://github.com/davidricodias/lobmp/actions/workflows/pypi_publish.yml/badge.svg)](https://github.com/davidricodias/lobmp/actions/workflows/pypi_publish.yml)
-[![Test Status](https://github.com/davidricodias/lobmp/actions/workflows/testing.yml/badge.svg)](https://github.com/davidricodias/lobmp/actions/workflows/testing.yml)
+|    |    |
+| --- | --- |
+| CI/CD | [![Build Status](https://github.com/davidricodias/lobmp/actions/workflows/pypi_publish.yml/badge.svg)](https://github.com/davidricodias/lobmp/actions/workflows/pypi_publish.yml) [![Test Status](https://github.com/davidricodias/lobmp/actions/workflows/testing.yml/badge.svg)](https://github.com/davidricodias/lobmp/actions/workflows/testing.yml) |
+| Latest release | [![Github release](https://img.shields.io/github/release/davidricodias/lobmp.svg?label=tag&colorB=11ccbb)](https://github.com/davidricodias/lobmp/releases) [![PyPI version](https://img.shields.io/pypi/v/lobmp.svg?colorB=cc77dd)](https://pypi.python.org/pypi/lobmp) |
+| Python | [![Python support](https://img.shields.io/pypi/pyversions/lobmp.svg)](https://pypi.org/project/lobmp/) [![PyPI Downloads](https://static.pepy.tech/badge/lobmp)](https://pepy.tech/projects/lobmp) |
+| Docs | [![gh-pages](https://img.shields.io/github/last-commit/davidricodias/lobmp/gh-pages.svg)](https://github.com/davidricodias/lobmp/tree/gh-pages) |
 
 # lobmp
 
