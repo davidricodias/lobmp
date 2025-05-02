@@ -10,7 +10,7 @@ Limit Order Book Message Processor is a Python package designed to transform raw
 ## Install
 The package is available through PyPi
 ```sh
-pip install lobmp
+pip install --upgrade lobmp
 ```
 
 ## Features
