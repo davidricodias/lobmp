@@ -13,7 +13,7 @@ import polars as pl
 import pytest
 from polars.testing import assert_frame_equal
 
-from lobmp import find_market_by_price_lines, flatten_map_entry, flatten_market_by_price, run
+from lobmp import find_market_by_price_lines, flatten_map_entry, flatten_market_by_price, run, run_l10
 from lobmp.definitions.fids import known_fids, supplement
 from lobmp.logger import activate_logger, set_logger_level
 
@@ -483,3 +483,109 @@ def test_flatten_market_by_price_ok(
     res = flatten_market_by_price(test_messages)
 
     assert_frame_equal(res, expected, check_column_order=False)
+
+
+# L10 Tests
+
+def generate_l10_csv(
+    ric: str,
+    num_lines: int,
+    bid_price: float = 70.0,
+    ask_price: float = 75.0
+) -> str:
+    """Generate a simple L10 CSV file content"""
+    # Header
+    csv_content = "#RIC,Domain,Date-Time,Type,L1-BidPrice,L1-BidSize,L1-BuyNo,L1-AskPrice,L1-AskSize,L1-SellNo,"
+    csv_content += "L2-BidPrice,L2-BidSize,L2-BuyNo,L2-AskPrice,L2-AskSize,L2-SellNo,"
+    csv_content += "L3-BidPrice,L3-BidSize,L3-BuyNo,L3-AskPrice,L3-AskSize,L3-SellNo,"
+    csv_content += "L4-BidPrice,L4-BidSize,L4-BuyNo,L4-AskPrice,L4-AskSize,L4-SellNo,"
+    csv_content += "L5-BidPrice,L5-BidSize,L5-BuyNo,L5-AskPrice,L5-AskSize,L5-SellNo,"
+    csv_content += "L6-BidPrice,L6-BidSize,L6-BuyNo,L6-AskPrice,L6-AskSize,L6-SellNo,"
+    csv_content += "L7-BidPrice,L7-BidSize,L7-BuyNo,L7-AskPrice,L7-AskSize,L7-SellNo,"
+    csv_content += "L8-BidPrice,L8-BidSize,L8-BuyNo,L8-AskPrice,L8-AskSize,L8-SellNo,"
+    csv_content += "L9-BidPrice,L9-BidSize,L9-BuyNo,L9-AskPrice,L9-AskSize,L9-SellNo,"
+    csv_content += "L10-BidPrice,L10-BidSize,L10-BuyNo,L10-AskPrice,L10-AskSize,L10-SellNo,Exch Time\n"
+
+    # Data lines
+    for i in range(num_lines):
+        timestamp = f"2025-03-03T08:00:{i:02d}.000000000Z"
+        csv_content += f"{ric},Market Price,{timestamp},Normalized LL2,"
+        csv_content += f"{bid_price},{i+1},1,{ask_price},{i+2},1,"  # L1
+        # L2-L10 (mostly empty for simplicity)
+        csv_content += "," * 54  # 9 levels * 6 fields = 54 empty fields
+        csv_content += "\n"  # Exch Time (empty)
+
+    return csv_content
+
+
+@pytest.mark.parametrize("num_lines", [1, 10, 100])
+def test_run_l10_ok(tmp_path: Path, num_lines: int) -> None:
+    # Arrange
+    file = tmp_path / "test_l10.csv"
+    csv_content = generate_l10_csv("TEST.RIC", num_lines)
+    file.write_text(csv_content)
+
+    # Act
+    result = run_l10(Path(file), Path(tmp_path))
+
+    # Assert
+    assert result is True
+
+    # Verify parquet was created
+    parquet_files = list(tmp_path.glob("part-*.parquet"))
+    assert len(parquet_files) > 0
+
+    # Read and verify content
+    df = pl.read_parquet(tmp_path / "part-*.parquet")
+    assert df.shape[0] == num_lines
+    assert df.shape[1] == 65  # All L10 columns
+
+    # Verify some column names exist
+    assert "#RIC" in df.columns
+    assert "Domain" in df.columns
+    assert "Date-Time" in df.columns
+    assert "L1-BidPrice" in df.columns
+    assert "L1-AskPrice" in df.columns
+
+    # Verify data
+    assert df["#RIC"][0] == "TEST.RIC"
+    assert df["Domain"][0] == "Market Price"
+    assert df["L1-BidPrice"][0] == "70.0"
+    assert df["L1-AskPrice"][0] == "75.0"
+
+
+def test_run_l10_empty_file(tmp_path: Path) -> None:
+    # Arrange - file with only header
+    file = tmp_path / "test_l10_empty.csv"
+    csv_content = generate_l10_csv("TEST.RIC", 0)
+    file.write_text(csv_content)
+
+    # Act
+    result = run_l10(Path(file), Path(tmp_path))
+
+    # Assert
+    assert result is True
+    # No parquet files should be created for empty input
+    parquet_files = list(tmp_path.glob("part-*.parquet"))
+    # May have empty parquet or no parquet at all, both are acceptable
+    if len(parquet_files) > 0:
+        df = pl.read_parquet(tmp_path / "part-*.parquet")
+        assert df.shape[0] == 0
+
+
+def test_run_l10_raises_valueerror_when_file_is_not_csv_extension(tmp_path: Path):
+    file = tmp_path / "test_file.txt"
+    file.touch()
+
+    with pytest.raises(ValueError) as excinfo:
+        run_l10(Path(file), Path(tmp_path))
+
+    assert "is not of type CSV, Only .csv files are supported" in str(excinfo.value)
+
+
+def test_run_l10_raises_oserror_when_file_not_exists(tmp_path: Path):
+    file = tmp_path / "test_l10_nonexistent.csv"
+
+    # The file is not created
+    with pytest.raises(OSError, match=r'Failed to open file ".*test_l10_nonexistent\.csv".*\(os error 2\)'):
+        run_l10(Path(file), Path(tmp_path))

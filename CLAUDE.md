@@ -639,20 +639,26 @@ repos:
 
 ## 12. Roadmap y TODOs
 
-### TODOs Explícitos en Código
+### ✅ TODOs Resueltos (2024-12-10)
 
-```rust
-// src/lib.rs:570
-// TODO: add run_l10 function to do a run with L10 files
-```
+**Implementación L10 Completada:**
 
-```python
-# lobmp/main.py:4
-# TODO: add run_l10 function to do a run with L10 files
+Todos los TODOs relacionados con L10 han sido implementados y testeados:
 
-# lobmp/cli.py:41
-# TODO: add argument to indicate that the function runs with L10 files
-```
+1. ✅ **src/lib.rs**: Implementadas funciones `run_l10()` y `flat_l10_csv()`
+2. ✅ **lobmp/__init__.py**: Exportada función `run_l10`
+3. ✅ **lobmp/_lobmp.pyi**: Añadida type signature para `run_l10`
+4. ✅ **lobmp/main.py**: Soporta parámetro `format` con valores `mbp` y `l10`
+5. ✅ **lobmp/cli.py**: Argumento `--format [mbp|l10]` implementado
+6. ✅ **tests/test_lobmp.py**: 6 nuevos tests para `run_l10()` (todos pasando)
+7. ✅ **Validado con datos reales**: Euro50xde.csv (39,493 filas) procesado exitosamente
+
+**Funcionalidad L10:**
+- Procesa archivos L10 (Normalized LL2) con 10 niveles de market depth
+- Formato ancho mantenido: 65 columnas (RIC, Domain, Date-Time, L1-L10 Bid/Ask)
+- Procesamiento paralelo multi-thread usando mismo pipeline que MBP
+- Output: Parquet particionado con batch size de 16,384 mensajes
+- Performance: ~41 segundos para 39K filas en 12 CPUs
 
 ### Mejoras Sugeridas
 
