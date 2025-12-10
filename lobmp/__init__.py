@@ -1,8 +1,9 @@
-from lobmp._lobmp import (  # TODO: add run_l10 function to do a run with L10 files
+from lobmp._lobmp import (
     find_market_by_price_lines,
     flatten_map_entry,
     flatten_market_by_price,
     run,
+    run_l10,
 )
 from lobmp._version import VERSION
 
@@ -13,4 +14,5 @@ __all__ = [
     "flatten_map_entry",
     "flatten_market_by_price",
     "run",
-]  # TODO: add run_l10 function to do a run with L10 files
+    "run_l10",
+]

@@ -560,6 +560,272 @@ fn run(path: PathBuf, output_path: PathBuf, py: Python) -> PyResult<bool> {
     Ok(true)
 }
 
+fn flat_l10_csv(headers: &[String], line: &str) -> Result<DataFrame, PolarsError> {
+    // Parse CSV line into values
+    let values: Vec<String> = line.split(',').map(|s| s.to_string()).collect();
+
+    // Ensure we have the same number of values as headers
+    if values.len() != headers.len() {
+        return Err(PolarsError::ShapeMismatch(
+            format!(
+                "Expected {} columns but got {}",
+                headers.len(),
+                values.len()
+            )
+            .into(),
+        ));
+    }
+
+    // Create a vector of columns
+    let mut columns: Vec<Column> = Vec::new();
+
+    for (header, value) in headers.iter().zip(values.iter()) {
+        columns.push(Column::new(header.into(), vec![value.clone()]));
+    }
+
+    // Create and return DataFrame
+    DataFrame::new(columns)
+}
+
+#[pyfunction]
+fn run_l10(path: PathBuf, output_path: PathBuf, py: Python) -> PyResult<bool> {
+    // Get the Python logger
+    let logging = PyModule::import(py, "logging")?;
+    let logger = logging.getattr("getLogger")?.call1(("lobmp",))?;
+
+    if path.extension().and_then(|ext| ext.to_str()) != Some("csv") {
+        return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+            "The file {:?} is not of type CSV, Only .csv files are supported",
+            path
+        )));
+    }
+
+    let file: File = File::open(&path).map_err(|e| {
+        PyErr::new::<pyo3::exceptions::PyIOError, _>(format!(
+            "Failed to open file {:?}: {}",
+            path, e
+        ))
+    })?;
+    let mut reader: BufReader<File> = BufReader::new(file);
+
+    logger.call_method1("info", ("Processing L10 CSV file...",))?;
+
+    // Read header line
+    let mut header_line = String::new();
+    reader.read_line(&mut header_line).map_err(|e| {
+        PyErr::new::<pyo3::exceptions::PyIOError, _>(format!("Error reading header: {}", e))
+    })?;
+
+    let headers: Vec<String> = header_line
+        .trim()
+        .split(',')
+        .map(|s| s.to_string())
+        .collect();
+
+    logger.call_method1(
+        "info",
+        (format!("Found {} columns in L10 file", headers.len()),),
+    )?;
+
+    // Count lines for progress reporting
+    let mut line_count = 0;
+    for _line in reader.by_ref().lines() {
+        line_count += 1;
+    }
+    reader.seek(SeekFrom::Start(0))?;
+    // Skip header again after reset
+    let mut _skip = String::new();
+    reader.read_line(&mut _skip)?;
+
+    logger.call_method1(
+        "info",
+        (format!("Found {} data lines in file", line_count),),
+    )?;
+
+    let num_cpus: usize = available_parallelism().unwrap().get();
+    logger.call_method1("debug", (format!("Using {} CPUs", num_cpus),))?;
+
+    let (tx_parsing, rx_parsing) = bounded::<IndexedMessage>(2 * num_cpus);
+    let (tx_dataframes, rx_dataframes) = bounded::<IndexedDataFrame>(2 * num_cpus);
+
+    let rx_parsing_run = rx_parsing.clone();
+    let (tx_dataframes_run, rx_dataframes_run) = (tx_dataframes.clone(), rx_dataframes.clone());
+
+    let headers_clone = headers.clone();
+
+    let mut parsing_threads = Vec::new();
+    {
+        for _i in 0..num_cpus {
+            let rx_parsing = rx_parsing.clone();
+            let tx_dataframes = tx_dataframes.clone();
+            let headers_for_thread = headers_clone.clone();
+            let parsing_handle = thread::spawn(move || {
+                while let Ok(indexed_message) = rx_parsing.recv() {
+                    let index = indexed_message.index;
+                    let line = indexed_message.content;
+                    match flat_l10_csv(&headers_for_thread, line.trim()) {
+                        Ok(df) => {
+                            let indexed_df = IndexedDataFrame { index, data: df };
+                            if tx_dataframes.send(indexed_df).is_err() {
+                                println!("Dataframes queue was closed before the parsing queue was finished...");
+                                return;
+                            }
+                        }
+                        Err(e) => {
+                            println!("Error processing L10 line on processing thread: {}", e);
+                            return;
+                        }
+                    }
+                }
+                drop(tx_dataframes);
+            });
+
+            parsing_threads.push(parsing_handle);
+        }
+    }
+
+    let mut writing_threads = Vec::new();
+    {
+        let dataframe_handler = thread::spawn(move || {
+            const BATCH_SIZE: usize = 16384;
+            let mut dfs: Vec<LazyFrame> = Vec::new();
+            let mut next_index_to_write: usize = 0;
+            let mut dataframes_map: HashMap<usize, LazyFrame> = HashMap::new();
+            let mut batch_counter: usize = 0;
+
+            let expected_columns: Vec<&str> = headers.iter().map(|s| s.as_str()).collect();
+
+            // Ensure the output directory exists
+            fs::create_dir_all(&output_path).expect("Failed to create output directory");
+
+            while let Ok(indexed_df) = rx_dataframes.recv() {
+                let df_with_all_columns = indexed_df
+                    .data
+                    .clone()
+                    .lazy()
+                    .select(expected_columns.iter().map(|&c| col(c)).collect::<Vec<_>>());
+                dataframes_map.insert(indexed_df.index, df_with_all_columns);
+
+                while dataframes_map.contains_key(&next_index_to_write) && dfs.len() < BATCH_SIZE {
+                    dfs.push(dataframes_map.remove(&next_index_to_write).unwrap());
+                    next_index_to_write += 1;
+                }
+
+                if dfs.len() >= BATCH_SIZE {
+                    let file_path = output_path.join(format!("part-{:06}.parquet", batch_counter));
+                    let file = File::create(&file_path).expect("Failed to create batch file");
+                    let writer = ParquetWriter::new(BufWriter::new(file));
+                    let mut batch_df = concat(dfs.drain(..), UnionArgs::default())
+                        .unwrap()
+                        .collect()
+                        .unwrap();
+
+                    writer.finish(&mut batch_df).expect("Failed to write batch");
+                    batch_counter += 1;
+                }
+            }
+
+            // Final flush
+            while let Some(lf) = dataframes_map.remove(&next_index_to_write) {
+                dfs.push(lf);
+                next_index_to_write += 1;
+            }
+
+            if !dfs.is_empty() {
+                let file_path = output_path.join(format!("part-{:06}.parquet", batch_counter));
+                let file = File::create(&file_path).expect("Failed to create final batch file");
+                let writer = ParquetWriter::new(BufWriter::new(file));
+                let mut final_df = concat(dfs, UnionArgs::default())
+                    .unwrap()
+                    .collect()
+                    .unwrap();
+
+                writer
+                    .finish(&mut final_df)
+                    .expect("Failed to write final batch");
+            }
+        });
+
+        writing_threads.push(dataframe_handler);
+    }
+
+    let start_time: time::Instant = time::Instant::now();
+    logger.call_method1("info", ("Starting L10 file processing...",))?;
+
+    let mut message_index = 0;
+    for (i, line) in reader.lines().enumerate() {
+        let line = line.map_err(|e| {
+            PyErr::new::<pyo3::exceptions::PyIOError, _>(format!("Error reading line: {}", e))
+        })?;
+
+        let indexed_message = IndexedMessage {
+            index: message_index,
+            content: line,
+        };
+
+        tx_parsing.send(indexed_message).unwrap();
+        message_index += 1;
+
+        if i > 0 && i % 100000 == 0 {
+            let elapsed_time: time::Duration = time::Instant::now() - start_time;
+            let estimated_total_time = (elapsed_time / i.try_into().unwrap()) * line_count;
+            let estimated_remaining = estimated_total_time - elapsed_time;
+            logger.call_method1(
+                "info",
+                (format!(
+                    "Processed: {} lines. Estimated {:02?} remaining",
+                    i, estimated_remaining
+                ),),
+            )?;
+        }
+    }
+
+    // Safely close parsing job
+    while !tx_parsing.is_empty() && !rx_parsing_run.is_empty() {
+        sleep(time::Duration::from_millis(10));
+    }
+    drop(tx_parsing);
+    drop(rx_parsing_run);
+
+    for handle in parsing_threads {
+        match handle.join() {
+            Ok(_) => {
+                logger.call_method1("debug", ("Parsing thread completed successfully",))?;
+            }
+            Err(_e) => {
+                logger.call_method1("error", ("Parsing thread panicked. This is very bad :(",))?;
+                return Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
+                    "Parsing thread panicked. This is very bad :(",
+                ));
+            }
+        }
+    }
+
+    // Safely close writing job
+    while !tx_dataframes_run.is_empty() && !rx_dataframes_run.is_empty() {
+        sleep(time::Duration::from_millis(10));
+    }
+    drop(tx_dataframes_run);
+    drop(tx_dataframes);
+
+    logger.call_method1("debug", ("Writing queue is empty!",))?;
+
+    for handle in writing_threads {
+        match handle.join() {
+            Ok(_) => {
+                logger.call_method1("debug", ("Writing thread completed successfully",))?;
+            }
+            Err(_e) => {
+                logger.call_method1("error", ("Writing thread panicked. This is very bad :(",))?;
+                return Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
+                    "Writing thread panicked. This is very bad :(",
+                ));
+            }
+        }
+    }
+    Ok(true)
+}
+
 #[pymodule]
 fn _lobmp(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(find_market_by_price_lines, m)?)?;
@@ -567,6 +833,6 @@ fn _lobmp(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(flatten_map_entry, m)?)?;
     m.add_function(wrap_pyfunction!(flatten_market_by_price, m)?)?;
     m.add_function(wrap_pyfunction!(run, m)?)?;
-    // TODO: add run_l10 function to do a run with L10 files
+    m.add_function(wrap_pyfunction!(run_l10, m)?)?;
     Ok(())
 }

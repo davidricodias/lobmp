@@ -38,7 +38,13 @@ def cli() -> int:
         help="Level of logging desired. Default is NOTSET, which is no logging.",
         type=str,
     )
-    # TODO: add argument to indicate that the function runs with L10 files
+    parser.add_argument(
+        "--format",
+        default="mbp",
+        choices=["mbp", "l10"],
+        help="Format of the input file. 'mbp' for Market By Price, 'l10' for L10/Normalized LL2. Default is mbp.",
+        type=str,
+    )
 
     # Show help if no arguments are provided
     if len(argv) == 1:
@@ -46,7 +52,7 @@ def cli() -> int:
         exit(1)
 
     args = parser.parse_args()
-    return main(args.filepath, args.targetdir, args.verbose)
+    return main(args.filepath, args.targetdir, args.verbose, args.format)
 
 
 if __name__ == "__main__":
