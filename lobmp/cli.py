@@ -38,6 +38,7 @@ def cli() -> int:
         help="Level of logging desired. Default is NOTSET, which is no logging.",
         type=str,
     )
+    # TODO: add argument to indicate that the function runs with L10 files
 
     # Show help if no arguments are provided
     if len(argv) == 1:

@@ -1,7 +1,7 @@
 from logging import NOTSET, _levelToName
 from pathlib import Path
 
-from lobmp import run
+from lobmp import run  # TODO: add run_l10 function to do a run with L10 files
 from lobmp.logger import activate_logger, log, set_logger_level
 
 __author__ = "davidricodias"
@@ -19,5 +19,6 @@ def main(filepath: str, targetdir: str, verbose: int | str = "NOTSET") -> int:
     output_directory_path = (Path(targetdir) / input_file_path.stem).with_suffix(".parquet")
 
     with log.timeit("Execute run"):
+        # TODO: add run_l10 function to do a run with L10 files
         status = run(input_file_path, output_directory_path)
     return status

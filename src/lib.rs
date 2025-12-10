@@ -567,5 +567,6 @@ fn _lobmp(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(flatten_map_entry, m)?)?;
     m.add_function(wrap_pyfunction!(flatten_market_by_price, m)?)?;
     m.add_function(wrap_pyfunction!(run, m)?)?;
+    // TODO: add run_l10 function to do a run with L10 files
     Ok(())
 }
