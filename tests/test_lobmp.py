@@ -13,7 +13,13 @@ import polars as pl
 import pytest
 from polars.testing import assert_frame_equal
 
-from lobmp import find_market_by_price_lines, flatten_map_entry, flatten_market_by_price, run, run_l10
+from lobmp import (
+    find_market_by_price_lines,
+    flatten_map_entry,
+    flatten_market_by_price,
+    run,
+    run_l10,
+)
 from lobmp.definitions.fids import known_fids, supplement
 from lobmp.logger import activate_logger, set_logger_level
 
@@ -487,11 +493,9 @@ def test_flatten_market_by_price_ok(
 
 # L10 Tests
 
+
 def generate_l10_csv(
-    ric: str,
-    num_lines: int,
-    bid_price: float = 70.0,
-    ask_price: float = 75.0
+    ric: str, num_lines: int, bid_price: float = 70.0, ask_price: float = 75.0
 ) -> str:
     """Generate a simple L10 CSV file content"""
     # Header
@@ -504,13 +508,15 @@ def generate_l10_csv(
     csv_content += "L7-BidPrice,L7-BidSize,L7-BuyNo,L7-AskPrice,L7-AskSize,L7-SellNo,"
     csv_content += "L8-BidPrice,L8-BidSize,L8-BuyNo,L8-AskPrice,L8-AskSize,L8-SellNo,"
     csv_content += "L9-BidPrice,L9-BidSize,L9-BuyNo,L9-AskPrice,L9-AskSize,L9-SellNo,"
-    csv_content += "L10-BidPrice,L10-BidSize,L10-BuyNo,L10-AskPrice,L10-AskSize,L10-SellNo,Exch Time\n"
+    csv_content += (
+        "L10-BidPrice,L10-BidSize,L10-BuyNo,L10-AskPrice,L10-AskSize,L10-SellNo,Exch Time\n"
+    )
 
     # Data lines
     for i in range(num_lines):
         timestamp = f"2025-03-03T08:00:{i:02d}.000000000Z"
         csv_content += f"{ric},Market Price,{timestamp},Normalized LL2,"
-        csv_content += f"{bid_price},{i+1},1,{ask_price},{i+2},1,"  # L1
+        csv_content += f"{bid_price},{i + 1},1,{ask_price},{i + 2},1,"  # L1
         # L2-L10 (mostly empty for simplicity)
         csv_content += "," * 54  # 9 levels * 6 fields = 54 empty fields
         csv_content += "\n"  # Exch Time (empty)
@@ -587,5 +593,7 @@ def test_run_l10_raises_oserror_when_file_not_exists(tmp_path: Path):
     file = tmp_path / "test_l10_nonexistent.csv"
 
     # The file is not created
-    with pytest.raises(OSError, match=r'Failed to open file ".*test_l10_nonexistent\.csv".*\(os error 2\)'):
+    with pytest.raises(
+        OSError, match=r'Failed to open file ".*test_l10_nonexistent\.csv".*\(os error 2\)'
+    ):
         run_l10(Path(file), Path(tmp_path))
