@@ -38,7 +38,7 @@ lobmp = "lobmp.cli:cli"
 dev = [
   "maturin==1.8.3",
   "mkdocs==1.6.1",
-  "mkdocs-material==9.6.12",
+  "mkdocs-material==9.7.0",
   "mkdocstrings[python]==0.30.1",
   "mkdocs-jupyter",
   "mypy[faster-cache]==1.15.0",
