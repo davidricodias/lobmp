@@ -36,7 +36,7 @@ lobmp = "lobmp.cli:cli"
 
 [dependency-groups]
 dev = [
-  "maturin==1.8.3",
+  "maturin==1.10.2",
   "mkdocs==1.6.1",
   "mkdocs-material==9.6.12",
   "mkdocstrings[python]==0.30.1",
